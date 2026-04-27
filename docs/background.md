@@ -2,39 +2,40 @@
 
 ## Origin
 
-This skill was developed in the [wanw-forge](https://github.com/fang-lin/wanw-forge) private workspace as part of a personal AI agent toolkit. It was extracted into a standalone public repository for community use.
+Both skills were developed in the [wanw-forge](https://github.com/fang-lin/wanw-forge) private workspace, then extracted and merged into this unified public repository for community use.
 
-## Design Decisions
+Previously each skill had its own repo (`fang-lin/consistent-portrait-set`, `fang-lin/top-news`). They were merged into `fang-lin/skills` for cleaner identifiers and easier maintenance.
 
-### Why RSS + public APIs instead of paid search APIs
-- Free, structured, reliable data
-- No API key required for basic operation
-- RSS feeds cover most major news outlets
-- Parallel/Tavily/etc. reserved for deep search use cases, not daily aggregation
+## consistent-portrait-set
 
-### Why agent-composed briefings instead of template-only output
-- Agent can summarize, translate, analyze trends
-- Scripts handle deterministic work (fetch, dedup, rank)
-- Agent handles intelligence (composition, trend insights, user interaction)
+### What it does
+Generates consistent multi-photo portrait sets using a model card (face reference image) via Google Gemini API. Two modes: Grid (2x2, fast) and Chain (sequential, precise).
 
-### Why multi-turn onboarding
-- Single-question-at-a-time prevents information overload
-- Each step has numbered options for quick reply
-- 0 = skip (keep defaults) for fast setup
-- Review summary before applying
+### Design Decisions
+- **Gemini API via google-genai SDK** — not raw HTTP. SDK handles imageConfig (resolution, aspect ratio) correctly.
+- **4K default for Grid, 2K for Chain** — Grid gets cropped (4K → ~2K per image), Chain is used as-is.
+- **Three approval gates** — creative brief, prompt, and generated image must all be approved before proceeding.
+- **Scripts handle execution, agent handles intelligence** — generate_suite.py does API calls/cropping/file management, the agent decides prompts and flow.
 
-### Why no i18n files
-- Agent translates SKILL.md templates at runtime
-- One SKILL.md serves all languages
-- Locale-specific sources auto-suggested based on user language
+### Known Limitations
+- Gemini's face consistency is approximate, not pixel-perfect
+- Four-grid layout sometimes uneven despite explicit prompting
+- Vercel AI Gateway doesn't support image input for DeepSeek models (vision must use a different model)
 
-## Known Limitations
+## top-news
 
-- Some RSS sources are unreliable (see sources-catalog.md for status)
-- Science category has no working free RSS sources currently
+### What it does
+Delivers personalized top news briefings from free RSS feeds and public APIs. Supports topic selection, scheduled delivery, streak tracking, trend analysis, and user feedback learning.
+
+### Design Decisions
+- **RSS + Hacker News API instead of paid search APIs** — free, structured, no API key required.
+- **Agent-composed briefings** — scripts fetch and rank data, agent writes summaries and trend analysis.
+- **Multi-turn onboarding** — one question at a time, numbered options, skip with 0, review before applying.
+- **i18n via agent runtime translation** — one SKILL.md for all languages, agent translates at runtime.
+- **Locale-specific sources** — auto-suggested based on user language (EN, ZH, DE verified).
+
+### Known Limitations
+- 6 RSS sources broken as of 2026-04-27 (机器之心, Reuters, 华尔街见闻, 澎湃, Nature, Science)
+- Science category has no reliable free RSS sources
 - Streak detection uses simple title similarity, not semantic matching
-- User feedback (👍/👎) is Phase 1 (text reply), inline buttons planned for Phase 2
-
-## Related
-
-- [consistent-portrait-set](https://github.com/fang-lin/consistent-portrait-set) — companion skill for photo generation
+- User feedback is Phase 1 (text reply), inline buttons planned for Phase 2
