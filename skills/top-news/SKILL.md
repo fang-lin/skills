@@ -4,6 +4,12 @@ description: Personalized top news briefing with trend insights. Use when the us
 version: "0.4.1"
 license: MIT
 compatibility: Python 3.9+, internet access required. No paid API keys needed for basic operation (NewsAPI optional).
+platforms: [macos, linux, windows]
+required_environment_variables:
+  - name: NEWSAPI_KEY
+    prompt: "NewsAPI key (optional — leave blank for free RSS-only mode)"
+    help: https://newsapi.org/register
+    required_for: expanded news coverage beyond free RSS feeds
 metadata:
   author: fang-lin
   repo: https://github.com/fang-lin/top-news
@@ -11,7 +17,27 @@ metadata:
     tags: [news, briefing, rss, trending, digest, personalized, 新闻, 热点]
     category: productivity
     requires_toolsets: [code_execution, web, skills, memory, cronjob]
-    env: [NEWSAPI_KEY]
+    config:
+      - key: top-news.default_language
+        description: "Default briefing language"
+        default: "auto"
+        prompt: "Preferred language for news briefings (en/zh/auto)"
+      - key: top-news.default_format
+        description: "Default briefing format"
+        default: "summary"
+        prompt: "Briefing format (headlines/summary/deep)"
+      - key: top-news.default_count
+        description: "Default number of news items per briefing"
+        default: "10"
+        prompt: "How many news items per briefing?"
+      - key: top-news.default_timezone
+        description: "User's timezone for schedule conversion"
+        default: "UTC"
+        prompt: "Your timezone (e.g. Asia/Shanghai, America/New_York)"
+      - key: top-news.default_schedule
+        description: "Default delivery schedule in local time"
+        default: "08:00"
+        prompt: "Delivery time in local HH:MM format (e.g. 08:00, 20:00)"
 ---
 
 # Top News — Personalized News Briefing
@@ -124,9 +150,28 @@ Reply 1/2/3/4, or 0 to skip.
 ```
 WAIT for answer.
 
-**Question 6: Schedule** [SINGLE-SELECT]
+**Question 6: Timezone** [SINGLE-SELECT]
+
+> [!IMPORTANT]
+> Cron jobs run in UTC on the server. You MUST know the user's timezone to schedule deliveries at the correct local time. Try to auto-detect from conversation context (language, mentioned city, greeting time). If uncertain, ask explicitly.
+
 ```
-When should I deliver?
+What's your timezone?
+
+1. 🇨🇳 Asia/Shanghai (UTC+8)
+2. 🇺🇸 America/New_York (UTC-4)
+3. 🇺🇸 America/Los_Angeles (UTC-7)
+4. 🇪🇺 Europe/Berlin (UTC+2)
+5. 🇬🇧 Europe/London (UTC+1)
+6. 🌐 Other (tell me your city or UTC offset)
+
+Reply 1-6, or 0 to skip (defaults to UTC).
+```
+WAIT for answer.
+
+**Question 7: Schedule** [SINGLE-SELECT]
+```
+When should I deliver? (times in your local timezone)
 
 1. 🌅 Morning (08:00)   ← default
 2. 🌆 Evening (20:00)
@@ -137,7 +182,7 @@ Reply 1/2/3/4, or 0 to skip.
 ```
 WAIT for answer.
 
-**Question 7: Delivery Target** [SINGLE-SELECT]
+**Question 8: Delivery Target** [SINGLE-SELECT]
 ```
 Where should I send the briefing?
 
@@ -162,7 +207,8 @@ Your briefing configuration:
 🌐 Language    [choice]
 📝 Format      [choice]
 🔢 Items       [count] per briefing
-⏰ Schedule    [times]
+🕐 Timezone    [timezone]
+⏰ Schedule    [times] (local) → [UTC times] (UTC)
 💬 Delivery    [target]
 
 Confirm? Reply "yes" to apply, or tell me what to change.
@@ -214,6 +260,7 @@ workspace/top-news/
   "language": "both",
   "format": "summary",
   "item_count": 10,
+  "timezone": "Asia/Shanghai",
   "schedule": "08:00",
   "delivery_target": "current_chat"
 }
@@ -265,7 +312,7 @@ print(result["output"])
 
 **Step 3: Compose briefing**
 
-Read `ranked_news.json` and compose the briefing text using the templates in `references/briefing-template.md`. Choose format based on user config.
+Read `ranked_news.json` and compose the briefing text using the templates in `templates/briefing-template.md`. Choose format based on user config.
 
 For each article:
 - Write a clear, concise summary (use your LLM capabilities)
@@ -318,24 +365,43 @@ Update `config.json` and `sources.json` accordingly.
 
 ### Setting Up Cron
 
+> [!IMPORTANT]
+> Hermes cron runs in **UTC**. You MUST convert the user's local time to UTC before creating the cron schedule. Read `timezone` from `config.json` and compute the UTC offset.
+>
+> Example: User wants 08:00 in Asia/Shanghai (UTC+8) → cron should be `0 0 * * *` (00:00 UTC).
+
 Use Hermes cron to schedule delivery:
 
 ```
-/cron add --name "top-news" --schedule "0 8 * * *" --prompt "Deliver my top news briefing"
+/cron add --name "top-news" --schedule "0 0 * * *" --prompt "Deliver my top news briefing"
 ```
 
-Adjust the cron schedule based on user's preferred delivery time.
+Adjust the cron schedule based on user's preferred delivery time **after converting to UTC**.
 
 ## Reference Documents
 
 - **Sources Catalog**: `references/sources-catalog.md` — Available data sources by category
-- **Briefing Templates**: `references/briefing-template.md` — Output format templates (headlines, summary, deep analysis)
+- **Briefing Templates**: `templates/briefing-template.md` — Output format templates (headlines, summary, deep analysis)
+
+## Pitfalls
+
+- **RSS feeds go stale.** If `fetch_news.py` returns fewer items than expected, check `references/sources-catalog.md` for known broken feeds and suggest alternatives.
+- **Network timeouts.** If many sources fail simultaneously, the briefing may be sparse. Inform the user and offer to retry.
+- **Near-duplicate articles may slip through.** The dedup uses title similarity — syndicated wire stories can occasionally pass. This is expected.
+- **Stale tracking.json.** If the agent hasn't run in 7+ days, streak badges won't appear until the tracking window rebuilds.
+- **Cron job misconfiguration.** When changing schedule, remove the old cron job first to avoid duplicate deliveries.
+
+## Verification
+
+- **After each briefing:** Verify `fetch_news.py` returned >0 items and `history/YYYY-MM-DD.json` was saved.
+- **After cron setup:** Run `hermes cron list` to confirm the job exists with the correct schedule.
+- **After preference changes:** Re-read `config.json` to confirm the update persisted.
 
 ## Important Notes
 
 - Scripts use only free, public data sources (RSS feeds + Hacker News API)
 - No API keys required for basic operation (NewsAPI is optional for expanded coverage)
 - Tracking window is 7 days rolling — older items are automatically pruned
-- All timestamps are UTC
+- All internal timestamps are UTC; cron schedules must be in UTC (convert from user's local timezone in config)
 - The agent composes the final briefing text — scripts only fetch and rank raw data
 - User preferences evolve over time based on feedback

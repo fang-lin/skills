@@ -4,14 +4,32 @@ description: Generate consistent photo sets using a model card for face-locking.
 version: "0.8.0"
 license: MIT
 compatibility: Requires GEMINI_API_KEY, internet access, Python packages google-genai and Pillow.
+platforms: [macos, linux, windows]
+required_environment_variables:
+  - name: GEMINI_API_KEY
+    prompt: "Gemini API key for image generation"
+    help: https://aistudio.google.com/app/apikey
+    required_for: all image generation and upscaling operations
 metadata:
   author: fang-lin
   repo: https://github.com/fang-lin/consistent-portrait-set
   hermes:
     tags: [photo, portrait, image-generation, face-lock, gemini, 套图, consistency]
     category: creative
-    requires_toolsets: [code_execution, skills]
-    env: [GEMINI_API_KEY]
+    requires_toolsets: [code_execution, skills, web]
+    config:
+      - key: consistent-portrait-set.default_mode
+        description: "Default generation mode"
+        default: "grid"
+        prompt: "Default mode (grid/chain)"
+      - key: consistent-portrait-set.default_resolution
+        description: "Default image resolution"
+        default: "4K"
+        prompt: "Default resolution (1K/2K/4K)"
+      - key: consistent-portrait-set.default_aspect_ratio
+        description: "Default aspect ratio"
+        default: "9:16"
+        prompt: "Default aspect ratio (e.g. 9:16, 1:1, 3:4)"
 ---
 
 # Photo Suite — Consistent 4-Photo Set Generator
@@ -384,6 +402,21 @@ workspace/consistent-portrait-set/
 ## Reference Documents
 
 - **Prompt Engineering Guide**: `references/prompt-guide.md` — 详细的提示词模板、调性参考、服装/场景/光线描述技巧、手脚质量控制、超分指南。每次执行 consistent-portrait-set 前建议先加载：`skill_view("consistent-portrait-set", file_path="references/prompt-guide.md")`
+
+## Pitfalls
+
+- **Face consistency is approximate.** Gemini's face-locking is not pixel-perfect. Minor variations across images are expected — set user expectations accordingly.
+- **Grid layout can be uneven.** Gemini occasionally produces unequal cells despite explicit prompting. Regenerate if too uneven — results vary between calls.
+- **Hand/finger artifacts.** Inspect hands at the grid approval step. Regenerate if finger count or pose is wrong.
+- **Large reference payloads may fail.** Too many high-res reference images can hit Gemini API limits. Reduce references or lower resolution if the API errors.
+- **Session ID collisions.** Ensure each session-id is unique when generating multiple sets in a day.
+
+## Verification
+
+- **After grid generation:** Confirm `tmp/<session-id>/grid.png` exists before sending to user.
+- **After cropping:** Verify 4 crop files exist with reasonable dimensions (~half grid width × half height).
+- **After finalize/chain-finalize:** Confirm final images exist in `outputs/YYYY-MM-DD/<session-id>/`.
+- **After upscale:** Check upscaled dimensions match expected resolution.
 
 ## Important Notes
 
