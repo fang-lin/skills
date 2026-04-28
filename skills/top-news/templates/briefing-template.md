@@ -3,7 +3,7 @@
 ## Headlines Format (compact)
 
 ```
-📰 Top News — 2026-04-27
+📰 Top News — 2026-04-27 08:00
 
 1. Title — Source 🔗 [link]
 2. Title — Source 🔥3d 🔗 [link]
@@ -16,7 +16,7 @@
 ## Summary Format (default)
 
 ```
-📰 Top News — 2026-04-27
+📰 Top News — 2026-04-27 08:00
 
 🔥 TOP 10
 
@@ -42,7 +42,7 @@
 ## Deep Analysis Format (detailed)
 
 ```
-📰 Top News — 2026-04-27
+📰 Top News — 2026-04-27 08:00
 
 ━━━━━━━━━━━━━━━━━━━━━━━
 
