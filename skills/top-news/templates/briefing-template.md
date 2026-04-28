@@ -44,8 +44,6 @@
 ```
 📰 Top News — 2026-04-27 08:00
 
-━━━━━━━━━━━━━━━━━━━━━━━
-
 1. [Title]
    Source: [name] | Published: [time]
    🔗 [original article URL]
@@ -56,7 +54,15 @@
    Related: [links to previous coverage if on streak]
    👍 / 👎
 
-━━━━━━━━━━━━━━━━━━━━━━━
+2. [Title]
+   Source: [name] | Published: [time]
+   🔗 [original article URL]
+
+   [3-5 sentence detailed summary with context and implications]
+
+   Key takeaway: [one sentence]
+   Related: [links to previous coverage if on streak]
+   👍 / 👎
 
 ...
 
