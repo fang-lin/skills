@@ -121,7 +121,7 @@ def rank_articles(articles: list[dict], tracking: dict) -> list[dict]:
 
         # Source score (e.g., HN upvotes)
         if article.get("score"):
-            score += min(article["score"] * 0.5, 100)
+            score += min(article["score"] * 0.05, 20)
 
         # Streak bonus
         streak = compute_streak(article, tracking)
@@ -169,8 +169,17 @@ def main():
     # Rank
     ranked = rank_articles(deduped, tracking)
 
-    # Take top N
-    top = ranked[:args.top]
+    # Take top N with source diversity (max 5 per source)
+    top = []
+    source_counts: dict[str, int] = {}
+    for article in ranked:
+        src = article.get("source", "unknown")
+        if source_counts.get(src, 0) >= 5:
+            continue
+        top.append(article)
+        source_counts[src] = source_counts.get(src, 0) + 1
+        if len(top) >= args.top:
+            break
 
     # Update tracking with selected articles
     tracking = update_tracking(top, tracking)
